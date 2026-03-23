@@ -58,7 +58,7 @@ function sendMessage(recipientId, text) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: "graph.facebook.com",
-      path: `/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+      path: `/v19.0/me/messages?access_token=${encodeURIComponent(PAGE_ACCESS_TOKEN)}`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
