@@ -27,9 +27,38 @@ function handleVerification(req, res) {
   }
 }
 
+// Parse raw body as JSON
+function parseBody(req) {
+  return new Promise((resolve, reject) => {
+    // Already parsed by Vercel
+    if (req.body && typeof req.body === "object") {
+      return resolve(req.body);
+    }
+    let raw = "";
+    req.on("data", (chunk) => (raw += chunk));
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(raw || "{}"));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
 // Incoming message handler
 async function handleMessage(req, res) {
-  const body = req.body;
+  let body;
+  try {
+    body = await parseBody(req);
+  } catch (e) {
+    console.error("Body parse error:", e.message);
+    res.status(400).end("Bad Request");
+    return;
+  }
+
+  console.log("Received body:", JSON.stringify(body));
 
   if (body.object !== "page") {
     res.status(404).end("Not Found");
@@ -39,7 +68,11 @@ async function handleMessage(req, res) {
   for (const entry of body.entry ?? []) {
     for (const event of entry.messaging ?? []) {
       if (event.message?.text) {
-        await sendMessage(event.sender.id, event.message.text);
+        try {
+          await sendMessage(event.sender.id, event.message.text);
+        } catch (e) {
+          console.error("sendMessage error:", e.message);
+        }
       }
     }
   }
